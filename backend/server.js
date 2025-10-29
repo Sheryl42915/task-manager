@@ -68,8 +68,8 @@ app.post('/signup', async (req, res) => {
         saveUsers();
         
         // Create JWT token
-        const token = jwt.sign({ userId: newUser.id, username: newUser.username }, JWT_SECRET);
-        
+        const token = jwt.sign({ userId: newUser.id, username: newUser.username }, JWT_SECRET, { expiresIn: '1d' });
+              
         res.json({ token, username: newUser.username });
     } catch (error) {
         res.status(500).json({ error: 'Server error' });

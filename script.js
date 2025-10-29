@@ -6,16 +6,50 @@ const clearButton = document.getElementById('clearButton');
 
 const API_URL = 'https://task-manager-3q9m.onrender.com/tasks';
 
+// Check if user is logged in
+const token = localStorage.getItem('token');
+const username = localStorage.getItem('username');
+
+if (!token) {
+    // Redirect to login if not logged in
+    window.location.href = 'login.html';
+}
+
+// Display username and logout button
+const h1 = document.querySelector('h1');
+h1.innerHTML = `✓ Task Manager <small style="font-size: 0.5em;">- ${username}</small> <button id="logoutBtn" style="font-size: 0.4em; margin-left: 10px;">Logout</button>`;
+
+document.getElementById('logoutBtn').addEventListener('click', function() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    window.location.href = 'login.html';
+});
+
 // Load tasks when page loads
 loadTasks();
 
 function loadTasks() {
-    fetch(API_URL)
-        .then(response => response.json())
+    fetch(API_URL, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
+        .then(response => {
+            if (response.status === 401) {
+                // Token invalid, redirect to login
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+                return;
+            }
+            return response.json();
+        })
         .then(tasks => {
-            taskList.innerHTML = '';
-            tasks.forEach(task => displayTask(task));
-        });
+            if (tasks) {
+                taskList.innerHTML = '';
+                tasks.forEach(task => displayTask(task));
+            }
+        })
+        .catch(error => console.error('Error loading tasks:', error));
 }
 
 function displayTask(task) {
@@ -37,14 +71,14 @@ function displayTask(task) {
         taskSpan.style.color = '#888';
     }
     
-    // Click to edit
     taskSpan.addEventListener('click', function() {
         const newText = prompt('Edit task:', task.text);
         if (newText && newText.trim() !== '') {
-            fetch(`${API_URL}/${task.id}`, {
+            fetch(`https://task-manager-3q9m.onrender.com/tasks/${task.id}`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({ text: newText })
             })
@@ -55,25 +89,24 @@ function displayTask(task) {
         }
     });
     
-   checkbox.addEventListener('change', function() {
-    // Update the visual style
-    if (checkbox.checked) {
-        taskSpan.style.textDecoration = 'line-through';
-        taskSpan.style.color = '#888';
-    } else {
-        taskSpan.style.textDecoration = 'none';
-        taskSpan.style.color = 'black';
-    }
-    
-    // Save to backend
-    fetch(`${API_URL}/${task.id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ completed: checkbox.checked })
+    checkbox.addEventListener('change', function() {
+        if (checkbox.checked) {
+            taskSpan.style.textDecoration = 'line-through';
+            taskSpan.style.color = '#888';
+        } else {
+            taskSpan.style.textDecoration = 'none';
+            taskSpan.style.color = 'black';
+        }
+        
+        fetch(`https://task-manager-3q9m.onrender.com/tasks/${task.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ completed: checkbox.checked })
+        });
     });
-});
     
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = 'Delete';
@@ -81,8 +114,11 @@ function displayTask(task) {
     deleteBtn.style.backgroundColor = '#f44336';
     
     deleteBtn.addEventListener('click', function() {
-        fetch(`${API_URL}/${task.id}`, {
-            method: 'DELETE'
+        fetch(`https://task-manager-3q9m.onrender.com/tasks/${task.id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         })
         .then(() => {
             li.remove();
@@ -103,7 +139,8 @@ addButton.addEventListener('click', function() {
         fetch(API_URL, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({ 
                 text: taskText,
@@ -122,7 +159,10 @@ addButton.addEventListener('click', function() {
 clearButton.addEventListener('click', function() {
     if (confirm('Are you sure you want to delete all tasks?')) {
         fetch(API_URL, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         })
         .then(() => {
             taskList.innerHTML = '';
