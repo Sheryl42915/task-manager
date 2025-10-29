@@ -4,7 +4,7 @@ const taskList = document.getElementById('taskList');
 const addButton = document.getElementById('addButton');
 const clearButton = document.getElementById('clearButton');
 
-const API_URL = 'http://localhost:3001/tasks';
+const API_URL = 'https://task-manager-3q9m.onrender.com/tasks';
 
 // Load tasks when page loads
 loadTasks();
